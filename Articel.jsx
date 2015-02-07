@@ -60,7 +60,20 @@ function startScript(){
   * New line at end of text
 */
 function cleanShit() {
-  // Todo
+  var text = story.contents;
+
+  var regexps = [
+    {pattern: /\s+$/gm, replaceWith: ''}, // Trailing spaces
+    {pattern: /^\s+/gm, replaceWith: ''}, // Leading spaces in paragraphs and duplicated newlines
+    {pattern: /([ ]){2,}/gm, replaceWith: ' '}, // Duplicate spaces
+   // {pattern: /(\r){2,}/gm, replaceWith: '\r'}, // Duplicate new lines
+    //{pattern: /(~b~b+)/g, replaceWith: '\r'}, // Duplicated new lines (from default query in find/replace in Indesign)
+  ];
+  for ( var i in regexps) {
+    text = text.replace(regexps[i].pattern, regexps[i].replaceWith);
+  }
+
+  story.contents = text;
   return;
 }
 
