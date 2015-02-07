@@ -5,11 +5,8 @@
 Copied from SortParagraph (sample script for Indesign)
 */
 
-// Fix a number of things related to an VIBS article:
-// * Set first paragraph to use style "ARTI VIBS Body lead"
-// * Add tombstone at end of article
-// * Add Jacek as author
-//
+
+var isVIBS = false;
 
 try{ main (); }
 catch (e) { alert (e.message + " (" + e.line + ")"); }
@@ -48,18 +45,20 @@ function startScript(){
   var sel = app.selection[0];
       story = sel.parentStory;
 
-  cleanShit();
+  cleanShit(story);
   addTombstone(story);
   addAuthor(story);
   setParagraphStyles(story.paragraphs);
 }
 
 /*
-  Clean up as much as possible. Ie:
-  * Duplicated "new paragraphs characters
-  * New line at end of text
+  Clean up as much as possible.
+
+  Flags:
+   g = Global
+   m = multiline
 */
-function cleanShit() {
+function cleanShit(story) {
   var text = story.contents;
 
   var regexps = [
@@ -89,8 +88,8 @@ function addTombstone(story) {
 function addAuthor(story) {
   var defaultArticleParagraphStyle = "Article:Body:ARTI Body main";
   var authorStyles = {
-    name: "Article:Body:ARTI Body author name",
-    email: "Article:Body:ARTI Body author email"
+    name: "Article:Author:ARTI Body author name",
+    email: "Article:Author:ARTI Body author email"
   };
 
   var author = getAuthorByPrompt();
@@ -110,21 +109,48 @@ function addAuthor(story) {
 }
 
 function setParagraphStyles(paragraphs) {
-  var paragraphStylesToApply = [
-    "Article:ARTI Stock Info", // First element will be applied to first paragrapgh
-    "Article:ARTI VIBS Body lead", // Second element will be applied to second paragrapgh
-  ];
-  var pg;
-  var pgStyle;
+  var pStyle,
+      styleName,
+      pStyles = {
+        first: "Article:ARTI Stock Info",
+        second: "Article:ARTI Body lead with drop char",
+        header: "Article:ARTI Body header", // Unused?
+        afterHeader: "Article:ARTI Body lead", // Unused?
+        rest: "Article:ARTI Body main",
+      };
+
+  // If there is a VIBS or Markn. article: remove "stock info" style.
+  if ( isVIBS ) {
+    pStyles = {
+      first: "Article:VIBS:ARTI VIBS Body lead",
+      header: "Article:VIBS:ARTI Body header", // Unused?
+      afterHeader: "Article:VIBS:ARTI Body lead", // Unused?
+      rest: "Article:VIBS:ARTI VIBS Body main",
+    };
+  }
 
   for ( var i = 0; i < paragraphs.length; i++) {
+    styleName = undefined;
+    switch(i) {
+      case 0:
+        styleName = pStyles.first;
+        break;
+      case 1:
+        styleName = pStyles.second || pStyles.rest;
+        break;
+      case paragraphs.length:
+        styleName = pStyles.last || undefined;
+        break;
+      default:
+        styleName = pStyles.rest;
+    }
 
-
-  for ( var i = 0; i < paragraphStylesToApply.length; i++) {
-    pg = paragraphs[i];
-    pgStyle =  getParagraphStyleByName(paragraphStylesToApply[i]);
-    pg.applyParagraphStyle(pgStyle);
+    if ( styleName ) {
+      pStyle = getParagraphStyleByName(styleName);
+      paragraphs[i].applyParagraphStyle(pStyle);
+    }
   }
+
 
 }
 
@@ -241,6 +267,9 @@ function getAuthorByPrompt() {
        };
     }(authors[i]);
   }
+
+  // var controllers = w.add("group");
+  //controllers.add('checkbox');
 
   w.show();
   return result;
